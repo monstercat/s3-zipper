@@ -14,8 +14,8 @@ var app        = express()
 app.use(bodyParser.json())
 
 app.get('/', function(req, res) {
-  var filename = req.query.filename
-    , tracks = req.query.tracks
+  var filename = decodeURIComponent(req.query.filename)
+    , tracks = decodeURIComponent(req.query.tracks)
     , userId = req.query.userId
 
   if (!filename || !tracks || !userId)
@@ -44,7 +44,7 @@ app.get('/', function(req, res) {
   }).
   pipe(res)
 
-  tracks.forEach(function (track) {
+  tracks.forEach(function zipTrack(track) {
     var opts = {
       Bucket: bucket,
       Key: track.key
