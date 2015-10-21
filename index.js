@@ -7,7 +7,7 @@ var debug      = require('debug')('zipper')
 var s3 = new aws.S3()
 var bucket = process.env.AWS_BUCKET
 
-if (!bucket || !process.env.AWS_ACCESS_KEY_ID || !process.AWS_SECRET_ACCESS_KEY)
+if (!bucket || !process.env.AWS_ACCESS_KEY_ID || !process.env.AWS_SECRET_ACCESS_KEY || !process.env.AWS_REGION)
   throw Error('Missing AWS fields')
 
 var app        = express()
