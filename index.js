@@ -9,10 +9,10 @@ var bucket = process.env.AWS_BUCKET
 var app        = express()
 app.use(bodyParser.json())
 
-app.post('/', function(req, res) {
-  var filename = req.body.filename
-    , tracks = req.body.tracks
-    , userId = req.body.userId
+app.get('/', function(req, res) {
+  var filename = req.query.filename
+    , tracks = req.query.tracks
+    , userId = req.query.userId
 
   if (!filename || !tracks || !userId)
     return res.status(404).send('Missing fields.');
