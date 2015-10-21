@@ -18,8 +18,8 @@ app.post('/', function(req, res) {
     return res.status(404).send('Missing fields.');
 
   res.writeHead(200, {
-    'Content-Type': 'application/zip'
-    'Content-disposition': "attachment; filename=#{playlist.name}.zip"
+    'Content-Type': 'application/zip',
+    'Content-disposition': attachment(filename)
   })
 
   var archive = archiver.create('zip', {store: true})
@@ -34,5 +34,9 @@ app.post('/', function(req, res) {
   });
   archive.finalize()
 })
+
+function attachment(filename) {
+  return "attachment; filename=\"" + filename + '"'
+}
 
 app.listen(process.env.PORT || 5000)
