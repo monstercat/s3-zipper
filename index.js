@@ -35,7 +35,14 @@ app.get('/', function(req, res) {
   })
 
   var archive = archiver.create('zip', {store: true})
-  archive.pipe(res)
+  archive.on('error', function(err) {
+    debug('archive error', err)
+    res.end('Error')
+  }).
+  on('finish', function() {
+    debug('Finished writing', filename)
+  }).
+  pipe(res)
 
   tracks.forEach(function (track) {
     var opts = {
@@ -43,10 +50,6 @@ app.get('/', function(req, res) {
       Key: track.key
     };
     archive.append(s3.getObject(opts).createReadStream(), {name: track.filename})
-  });
-  archive.on('error', function(err) {
-    debug('archive error', err)
-    res.end('Error')
   });
   archive.finalize()
 })
