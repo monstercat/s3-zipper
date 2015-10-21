@@ -1,0 +1,26 @@
+{
+  "name": "s3-zipper",
+  "version": "1.0.0",
+  "description": "",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/monstercat/s3-zipper.git"
+  },
+  "author": "",
+  "license": "MIT",
+  "bugs": {
+    "url": "https://github.com/monstercat/s3-zipper/issues"
+  },
+  "homepage": "https://github.com/monstercat/s3-zipper#readme",
+  "dependencies": {
+    "archiver": "^0.16.0",
+    "aws-sdk": "^2.2.10",
+    "body-parser": "^1.14.1",
+    "express": "^4.13.3",
+    "request": "^2.65.0"
+  }
+}
