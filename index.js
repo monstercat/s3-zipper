@@ -2,6 +2,7 @@ var express    = require('express')
 var archiver   = require('archiver')
 var bodyParser = require('body-parser')
 var aws        = require('aws-sdk')
+var debug      = require('debug')('zipper')
 
 var s3 = new aws.S3()
 var bucket = process.env.AWS_BUCKET
@@ -16,6 +17,8 @@ app.get('/', function(req, res) {
 
   if (!filename || !tracks || !userId)
     return res.status(404).send('Missing fields.');
+
+  debug('Writing playlist', filename)
 
   res.writeHead(200, {
     'Content-Type': 'application/zip',
