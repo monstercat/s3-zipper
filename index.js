@@ -16,7 +16,13 @@ app.get('/', function(req, res) {
     , userId = req.query.userId
 
   if (!filename || !tracks || !userId)
-    return res.status(404).send('Missing fields.');
+    return res.status(404).send('Missing fields.')
+
+  try{
+    tracks = JSON.parse(tracks)
+  } catch(e) {
+    return res.status(404).send('Invalid tracks.')
+  }
 
   debug('Writing playlist', filename)
 
