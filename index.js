@@ -6,91 +6,81 @@ var debug      = require('debug')('zipper')
 var uuid       = require('node-uuid').v1
 var path       = require('path')
 
-if (!process.env.AWS_BUCKET || !process.env.AWS_ACCESS_KEY_ID || !process.env.AWS_SECRET_ACCESS_KEY || !process.env.AWS_REGION)
+if (!process.env.AWS_ACCESS_KEY_ID || !process.env.AWS_SECRET_ACCESS_KEY)
   throw Error('Missing AWS fields')
 
-var bucket = process.env.AWS_BUCKET
+var map = {}
 var s3 = new aws.S3()
-
 var app = express()
+app.set('trust proxy', true)
 app.use(bodyParser.json())
 
-var map = {}
-
-app.post('/download', function(req, res) {
+app.post('/', function(req, res) {
   var filename = req.body.filename
-    , tracks = req.body.tracks
+    , items = req.body.items
+    , bucket = req.body.bucket
 
-  if (!filename || !tracks)
+  if (!filename || !items || !bucket)
     return res.status(400).send('Missing fields.')
 
-  try{
-    tracks = JSON.parse(tracks)
-  } catch(e) {
-    return res.status(400).send('Invalid tracks.')
-  }
-
   var obj = {
+    bucket: bucket,
     filename: filename,
-    tracks: tracks
+    items: items
   }
 
   var id = uuid()
-    , url = (req.secure ? 'https://' : 'http://') + path.join(req.headers.host, 'download', id)
   map[id] = obj
-
   res.status(200).json({
-    url: url
+    url: req.protocol + '://' + [req.headers.host, 'download', id].join('/')
   })
 })
 
-app.get('/download/:id', function(req, res) {
+app.get('/:id', function(req, res) {
   if (!map[req.params.id]) {
-    return res.status(400).send('No url found.')
+    return res.status(404).send('Resource not found.')
   }
 
   var obj = map[req.params.id]
     , filename = obj.filename
-    , tracks = obj.tracks
+    , items = obj.items
+    , bucket = obj.bucket
 
-  debug('Writing playlist', filename)
+  debug('Writing zip as %s', filename)
 
   var archive = archiver.create('zip', {store: true})
   .on('error', function(err) {
-    debug('Archive error', err)
+    debug('Archive error %s', err)
     res.end('Error')
   })
   .on('finish', function() {
-    debug('Finished writing', filename)
+    debug('Finished writing zip %s', filename)
   })
 
-  tracks.forEach(function zipTrack(track) {
+  items.forEach(function zipit (item) {
     var opts = {
       Bucket: bucket,
-      Key: track.key
+      Key: item.key
     }
-    archive.append(s3.getObject(opts).createReadStream(), {name: track.filename})
+    archive.append(s3.getObject(opts).createReadStream(),
+      {name: item.filename})
   })
   archive.finalize()
 
   res.writeHead(200, {
     'Content-Type': 'application/zip',
-    'Content-disposition': attachment(filename)
+    'Content-disposition': 'attachment; filename="' + filename + '"'
   })
   archive.pipe(res)
 
   delete map[req.params.id]
 })
 
-app.use(function(req, res, next) {
-  res.sendStatus(404)
+app.use(function(req, res) {
+  res.status(404).send()
 })
-
-function attachment(filename) {
-  return "attachment; filename=\"" + filename + '"'
-}
 
 var port = process.env.PORT || 5000
 app.listen(port, function() {
-  debug('Server listening on port', port)
+  debug('Server listening on port %d', port)
 })
