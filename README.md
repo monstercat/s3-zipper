@@ -21,6 +21,7 @@ It will return a JSON string like the following:
 
 ```
 {
+  id: 'idofstream',
   url: 'http://example.com/idofstream'
 }
 ```

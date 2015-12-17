@@ -33,6 +33,7 @@ app.post('/', function(req, res) {
   var id = uuid()
   map[id] = obj
   res.status(200).json({
+    id: id,
     url: req.protocol + '://' + [req.headers.host, id].join('/')
   })
 })
