@@ -30,11 +30,16 @@ It will return a JSON string like the following:
 
 Call the returned URL to starting streaming the zip.
 
+# Authorization
+
+An optional `AUTH_PASSWORD` environment variable can be set so that all requests require a basic authorization password
+
 ## Running
 ```
 PORT=8080 \
 DEBUG='s3-zipper' \
 AWS_ACCESS_KEY_ID=... \
 AWS_SECRET_ACCESS_KEY=... \
+AUTH_PASSWORD= optional password ... \
 node index.js
 ```

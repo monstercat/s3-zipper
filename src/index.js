@@ -6,6 +6,7 @@ var debug      = require('debug')('s3-zipper')
 var express    = require('express')
 var path       = require('path')
 var uuid       = require('node-uuid').v1
+var basicAuth  = require('basic-auth')
 
 assert(process.env.AWS_ACCESS_KEY_ID, 'AWS_ACCESS_KEY_ID not set.')
 assert(process.env.AWS_SECRET_ACCESS_KEY, 'AWS_SECRET_ACCESS_KEY not set.')
@@ -15,6 +16,7 @@ var s3 = new aws.S3()
 var app = express()
 app.set('trust proxy', true)
 app.use(bodyParser.json())
+app.use(auth)
 
 app.post('/', function(req, res) {
   var filename = req.body.filename
@@ -81,5 +83,16 @@ app.get('/:id', function(req, res) {
 app.use(function(req, res) {
   res.status(404).send()
 })
+
+function auth(req, res, next) {
+  var pass = process.env.AUTH_PASSWORD
+  if (!pass) return next()
+
+  var user = basicAuth(req)
+  if (!user || !user.pass || user.pass !== pass)
+    return res.send(401)
+
+  next()
+}
 
 module.exports = app
