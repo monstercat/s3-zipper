@@ -16,9 +16,8 @@ var s3 = new aws.S3()
 var app = express()
 app.set('trust proxy', true)
 app.use(bodyParser.json())
-app.use(auth)
 
-app.post('/', function(req, res) {
+app.post('/', auth, function(req, res) {
   var filename = req.body.filename
     , items = req.body.items
     , bucket = req.body.bucket
@@ -29,7 +28,8 @@ app.post('/', function(req, res) {
   var obj = {
     bucket: bucket,
     filename: filename,
-    items: items
+    items: items,
+    public: req.body.public
   }
 
   var id = uuid()
@@ -40,11 +40,18 @@ app.post('/', function(req, res) {
   })
 })
 
-app.get('/:id', function(req, res) {
-  if (!map[req.params.id]) {
+app.get('/:id', function(req, res, next) {
+  var obj = map[req.params.id]
+  if (!obj) {
     return res.status(404).send('Resource not found.')
   }
-
+  if (obj.public) {
+    return next()
+  }
+  else {
+    return auth(req, res, next)
+  }
+}, function(req, res) {
   var obj = map[req.params.id]
     , filename = obj.filename
     , items = obj.items
