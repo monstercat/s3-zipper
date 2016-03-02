@@ -57,7 +57,7 @@ app.get('/:id', function(req, res, next) {
     , items = obj.items
     , bucket = obj.bucket
 
-  debug('Writing zip as %s', filename)
+  debug('Writing items %j to zip %s to bucket %s %j', items, filename, bucket)
 
   var archive = archiver.create('zip', {store: true})
   .on('error', function(err) {
