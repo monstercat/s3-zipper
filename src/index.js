@@ -7,6 +7,7 @@ var express    = require('express')
 var path       = require('path')
 var uuid       = require('node-uuid').v1
 var basicAuth  = require('basic-auth')
+var async      = require('async')
 
 assert(process.env.AWS_ACCESS_KEY_ID, 'AWS_ACCESS_KEY_ID not set.')
 assert(process.env.AWS_SECRET_ACCESS_KEY, 'AWS_SECRET_ACCESS_KEY not set.')
@@ -57,34 +58,44 @@ app.get('/:id', function(req, res, next) {
     , items = obj.items
     , bucket = obj.bucket
 
+  delete map[req.params.id]
   debug('Writing items %j to zip %s to bucket %s %j', items, filename, bucket)
 
-  var archive = archiver.create('zip', {store: true})
-  .on('error', function(err) {
-    debug('Archive error %s', err)
-    res.end('Error')
-  })
-  .on('finish', function() {
-    debug('Finished writing zip %s', filename)
-  })
-
-  items.forEach(function zipit (item) {
-    var opts = {
-      Bucket: bucket,
-      Key: item.key
+  checkExisting(items, bucket, function(err, items) {
+    if (err) {
+      return res.status(500).end()
     }
-    archive.append(s3.getObject(opts).createReadStream(),
-      {name: item.filename})
-  })
-  archive.finalize()
 
-  res.writeHead(200, {
-    'Content-Type': 'application/zip',
-    'Content-disposition': 'attachment; filename="' + filename + '"'
-  })
-  archive.pipe(res)
+    if (!items || !items.length) {
+      debug('No valid keys found in %j', items)
+      return res.status(400).json({message: "No valid keys were found."})
+    }
 
-  delete map[req.params.id]
+    var archive = archiver.create('zip', {store: true})
+    .on('error', function(err) {
+      debug('Archive error %s', err)
+      res.end('Error')
+    })
+    .on('finish', function() {
+      debug('Finished writing zip %s', filename)
+    })
+
+    items.forEach(function zipit (item) {
+      var opts = {
+        Bucket: bucket,
+        Key: item.key
+      }
+      archive.append(s3.getObject(opts).createReadStream(),
+        {name: item.filename || 'filename'})
+    })
+    archive.finalize()
+
+    res.writeHead(200, {
+      'Content-Type': 'application/zip',
+      'Content-disposition': 'attachment; filename="' + filename + '"'
+    })
+    archive.pipe(res)
+  })
 })
 
 app.use(function(req, res) {
@@ -100,6 +111,24 @@ function auth(req, res, next) {
     return res.send(401)
 
   next()
+}
+
+function checkExisting(items, bucket, done) {
+  var existing = []
+  async.eachLimit(items, 4, function handleItem(item, cb) {
+    var opts = {
+      Bucket: bucket,
+      Key: item.key
+    }
+    s3.headObject(opts, function(err, data) {
+      if (!err && data) {
+        existing.push(item)
+      }
+      cb()
+    })
+  }, function(err) {
+    done(err, existing)
+  })
 }
 
 module.exports = app
