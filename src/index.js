@@ -35,6 +35,8 @@ app.post('/', auth, function(req, res) {
 
   var id = uuid()
   map[id] = obj
+
+  debug('Created new id %s.', id)
   res.status(200).json({
     id: id,
     url: req.protocol + '://' + [req.headers.host, id].join('/')
@@ -59,7 +61,8 @@ app.get('/:id', function(req, res, next) {
     , bucket = obj.bucket
 
   delete map[req.params.id]
-  debug('Writing items %j to zip %s to bucket %s %j', items, filename, bucket)
+  debug('Writing %d items to zip %s using bucket %s with id %s',
+    Array.isArray(items) ? items.length : 0, filename, bucket, req.params.id)
 
   checkExisting(items, bucket, function(err, items) {
     if (err) {
@@ -68,7 +71,7 @@ app.get('/:id', function(req, res, next) {
 
     if (!items || !items.length) {
       debug('No valid keys found in %j', items)
-      return res.status(400).json({message: "No valid keys were found."})
+      return res.status(400).json({message: "No valid items were found."})
     }
 
     var archive = archiver.create('zip', {store: true})
