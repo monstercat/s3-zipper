@@ -83,15 +83,30 @@ app.get('/:id', function(req, res, next) {
       debug('Finished writing zip %s', filename)
     })
 
-    items.forEach(function zipit (item) {
+    async.forEachOfLimit(items, 4, function downloadAndZip(item, index, cb) {
       var opts = {
         Bucket: bucket,
         Key: item.key
       }
-      archive.append(s3.getObject(opts).createReadStream(),
-        {name: item.filename || 'filename'})
+      var aopts = {
+        name: item.filename || 'filename' + index
+      }
+
+      archive
+      .append(s3.getObject(opts).createReadStream(), aopts)
+      .on('error', cb)
+      .on('entry', function(entry) {
+        if (entry && entry.name == aopts.name) {
+          cb()
+        }
+      })
+
+    }, function(err) {
+      if (err) {
+        debug('Error zipping: %s', err)
+      }
+      archive.finalize()
     })
-    archive.finalize()
 
     res.writeHead(200, {
       'Content-Type': 'application/zip',

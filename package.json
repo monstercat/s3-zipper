@@ -17,7 +17,7 @@
   },
   "homepage": "https://github.com/monstercat/s3-zipper#readme",
   "dependencies": {
-    "archiver": "^0.16.0",
+    "archiver": "^0.21.0",
     "assert": "^1.3.0",
     "async": "^1.5.2",
     "aws-sdk": "^2.2.10",
