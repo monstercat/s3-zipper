@@ -12,6 +12,7 @@ var async      = require('async')
 assert(process.env.AWS_ACCESS_KEY_ID, 'AWS_ACCESS_KEY_ID not set.')
 assert(process.env.AWS_SECRET_ACCESS_KEY, 'AWS_SECRET_ACCESS_KEY not set.')
 
+var maxParallelDownloads = parseInt(process.env.MAX_PARALLEL_DOWNLOADS) || 2
 var map = {}
 var s3 = new aws.S3()
 var app = express()
@@ -83,7 +84,7 @@ app.get('/:id', function(req, res, next) {
       debug('Finished writing zip %s', filename)
     })
 
-    async.forEachOfLimit(items, 4, function downloadAndZip(item, index, cb) {
+    async.forEachOfLimit(items, maxParallelDownloads, function downloadAndZip(item, index, cb) {
       var opts = {
         Bucket: bucket,
         Key: item.key
@@ -133,7 +134,7 @@ function auth(req, res, next) {
 
 function checkExisting(items, bucket, done) {
   var existing = []
-  async.eachLimit(items, 4, function handleItem(item, cb) {
+  async.eachLimit(items, maxParallelDownloads, function handleItem(item, cb) {
     var opts = {
       Bucket: bucket,
       Key: item.key
