@@ -55,12 +55,12 @@ app.get('/:id', function(req, res, next) {
   else {
     return auth(req, res, next)
   }
-}, function(req, res) {
+}, function(req, res, next) {
   var obj = map[req.params.id]
     , filename = obj.filename
     , items = obj.items
     , bucket = obj.bucket
-
+    , cbs = new Map()
   delete map[req.params.id]
   debug('Writing %d items to zip %s using bucket %s with id %s',
     Array.isArray(items) ? items.length : 0, filename, bucket, req.params.id)
@@ -78,10 +78,21 @@ app.get('/:id', function(req, res, next) {
     var archive = archiver.create('zip', {store: true})
     .on('error', function(err) {
       debug('Archive error %s', err)
-      res.end('Error')
+      if (cbs.size) {
+        cbs.entries().next().value[1](err)
+      }
+      else {
+        next()
+      }
     })
     .on('finish', function() {
       debug('Finished writing zip %s', filename)
+    })
+    .on('entry', function(entry) {
+      if (entry && entry.name && cbs.get(entry.name)) {
+        cbs.get(entry.name)(null)
+        cbs.delete(entry.name)
+      }
     })
 
     async.forEachOfLimit(items, maxParallelDownloads, function downloadAndZip(item, index, cb) {
@@ -92,19 +103,14 @@ app.get('/:id', function(req, res, next) {
       var aopts = {
         name: item.filename || 'filename' + index
       }
+      cbs.set(aopts.name, cb)
 
       archive
       .append(s3.getObject(opts).createReadStream(), aopts)
-      .on('error', cb)
-      .on('entry', function(entry) {
-        if (entry && entry.name == aopts.name) {
-          cb()
-        }
-      })
-
     }, function(err) {
       if (err) {
         debug('Error zipping: %s', err)
+        return next()
       }
       archive.finalize()
     })
