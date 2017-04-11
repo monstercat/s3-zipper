@@ -71,7 +71,8 @@ app.get('/:id', function(req, res) {
 
   res.writeHead(200, {
     'Content-Type': 'application/zip',
-    'Content-disposition': 'attachment; filename="' + filename + '"'
+    'Content-disposition': 'attachment; filename="' + filename + '"',
+    'Content-Lenght':filename.size
   })
   archive.pipe(res)
 
