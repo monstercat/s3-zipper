@@ -8,6 +8,7 @@ var path       = require('path')
 var uuid       = require('node-uuid').v1
 var basicAuth  = require('basic-auth')
 var async      = require('async')
+var once       = require('once')
 
 assert(process.env.AWS_ACCESS_KEY_ID, 'AWS_ACCESS_KEY_ID not set.')
 assert(process.env.AWS_SECRET_ACCESS_KEY, 'AWS_SECRET_ACCESS_KEY not set.')
@@ -26,6 +27,9 @@ app.post('/', auth, function(req, res) {
 
   if (!filename || !items || !bucket)
     return res.status(400).send('Missing fields.')
+
+  if (!validate(items))
+    return res.status(400).send('items field is malformed.')
 
   var obj = {
     bucket: bucket,
@@ -103,7 +107,7 @@ app.get('/:id', function(req, res, next) {
       var aopts = {
         name: item.filename || 'filename' + index
       }
-      cbs.set(aopts.name, cb)
+      cbs.set(aopts.name, once(cb))
 
       archive
       .append(s3.getObject(opts).createReadStream(), aopts)
@@ -153,6 +157,14 @@ function checkExisting(items, bucket, done) {
     })
   }, function(err) {
     done(err, existing)
+  })
+}
+
+function validate(items) {
+  if (!Array.isArray(items))
+    return false
+  return items.every(function (item) {
+    return !!item.key
   })
 }
 
